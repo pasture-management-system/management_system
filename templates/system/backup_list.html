@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}備份記錄 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/system">系統管理</a></li>
+                <li class="breadcrumb-item active">備份記錄</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-folder"></i> 備份記錄</h2>
+            <button type="button" class="btn btn-primary" onclick="backupDatabase()">
+                <i class="bi bi-download"></i> 立即備份
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>備份檔案</th>
+                        <th>備份時間</th>
+                        <th>檔案大小</th>
+                        <th width="200">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td><i class="bi bi-file-earmark-zip"></i> {{ backup.filename }}</td>
+                        <td>{{ backup.created_at }}</td>
+                        <td>{{ backup.size }}</td>
+                        <td class="action-buttons">
+                            <a href="/system/backup/download/{{ backup.filename }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-download"></i> 下載
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="restoreBackup('{{ backup.filename }}')">
+                                <i class="bi bi-upload"></i> 還原
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteBackup('{{ backup.filename }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無備份記錄</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/system" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 返回系統管理
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function backupDatabase() {
+    showToast('正在備份中...', 'info');
+    
+    fetch('/system/api/backup', { method: 'POST' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast('備份成功！', 'success');
+                location.reload();
+            } else {
+                showToast(result.detail || '備份失敗', 'error');
+            }
+        });
+}
+
+function restoreBackup(filename) {
+    if (confirm(`確定要從 ${filename} 還原資料嗎？此操作將覆蓋現有資料！`)) {
+        showToast('正在還原中...', 'info');
+        
+        fetch(`/system/api/restore/${filename}`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('還原成功！', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '還原失敗', 'error');
+                }
+            });
+    }
+}
+
+function deleteBackup(filename) {
+    if (confirm(`確定要刪除備份檔案 ${filename} 嗎？`)) {
+        fetch(`/system/api/backup/${filename}/delete`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('備份已刪除', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '刪除失敗', 'error');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

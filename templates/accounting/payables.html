@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}應付帳款 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-file-earmark-minus"></i> 應付帳款</h2>
+            <p class="text-muted mb-0">管理廠商應付帳款</p>
+        </div>
+        <div>
+            <a href="/accounting/payables/create" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增應付
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 統計卡片 -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50">未付總額</h6>
+                        <h3>{{ "{:,.0f}".format(summary.unpaid or 0) }}</h3>
+                    </div>
+                    <i class="bi bi-exclamation-circle" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50">已付總額</h6>
+                        <h3>{{ "{:,.0f}".format(summary.paid or 0) }}</h3>
+                    </div>
+                    <i class="bi bi-check-circle" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50">應付總額</h6>
+                        <h3>{{ "{:,.0f}".format(summary.total or 0) }}</h3>
+                    </div>
+                    <i class="bi bi-cash-stack" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋列 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <select id="filterSupplier" class="form-select">
+                    <option value="">全部廠商</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="filterStatus" class="form-select">
+                    <option value="">全部狀態</option>
+                    <option value="未付" selected>未付</option>
+                    <option value="已付">已付</option>
+                    <option value="部分付款">部分付款</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="filterYear" class="form-select">
+                    <option value="">全部年度</option>
+                    {% for year in years %}
+                    <option value="{{ year }}">民國 {{ year }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="filterMonth" class="form-select">
+                    <option value="">全部月份</option>
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}">{{ m }} 月</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="button" class="btn btn-outline-primary me-2" onclick="searchPayables()">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="printContent('payableTable')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 應付帳款列表 -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="payableTable">
+            <table class="table table-hover mb-0" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>廠商</th>
+                        <th>關聯單號</th>
+                        <th>日期</th>
+                        <th class="text-end">應付金額</th>
+                        <th class="text-end">已付金額</th>
+                        <th class="text-end">餘額</th>
+                        <th>狀態</th>
+                        <th width="150">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payable in payables %}
+                    <tr>
+                        <td><strong>{{ payable.supplier.name if payable.supplier else '-' }}</strong></td>
+                        <td>
+                            {% if payable.purchase %}
+                            <a href="/purchases/{{ payable.purchase.id }}">{{ payable.purchase.purchase_number }}</a>
+                            {% else %}
+                            {{ payable.reference_number or '-' }}
+                            {% endif %}
+                        </td>
+                        <td>{{ payable.due_date.strftime('%Y-%m-%d') if payable.due_date else '-' }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(payable.amount or 0) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(payable.paid_amount or 0) }}</td>
+                        <td class="text-end text-danger">{{ "{:,.0f}".format((payable.amount or 0) - (payable.paid_amount or 0)) }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if payable.status == '已付' else ('warning' if payable.status == '部分付款' else 'danger') }}">
+                                {{ payable.status }}
+                            </span>
+                        </td>
+                        <td class="action-buttons">
+                            {% if payable.status != '已付' %}
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="makePayment({{ payable.id }}, {{ (payable.amount or 0) - (payable.paid_amount or 0) }})" title="付款">
+                                <i class="bi bi-cash"></i>
+                            </button>
+                            {% endif %}
+                            <a href="/accounting/payables/{{ payable.id }}/edit" class="btn btn-sm btn-outline-primary" title="編輯">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePayable({{ payable.id }})" title="刪除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無應付帳款資料</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 付款 Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">付款</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <input type="hidden" id="payableId" name="payable_id">
+                    <div class="mb-3">
+                        <label class="form-label">餘額</label>
+                        <input type="text" class="form-control" id="remainingAmount" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">付款金額</label>
+                        <input type="number" class="form-control" name="payment_amount" id="paymentAmount" required min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">付款日期</label>
+                        <input type="date" class="form-control" name="payment_date" value="{{ today }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">備註</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="submitPayment()">確認付款</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function searchPayables() {
+    const supplier = $('#filterSupplier').val();
+    const status = $('#filterStatus').val();
+    const year = $('#filterYear').val();
+    const month = $('#filterMonth').val();
+    
+    let url = '/accounting/payables?';
+    if (supplier) url += `supplier_id=${supplier}&`;
+    if (status) url += `status=${status}&`;
+    if (year) url += `year=${year}&`;
+    if (month) url += `month=${month}&`;
+    
+    window.location.href = url;
+}
+
+function makePayment(id, remaining) {
+    $('#payableId').val(id);
+    $('#remainingAmount').val(remaining.toLocaleString());
+    $('#paymentAmount').val(remaining).attr('max', remaining);
+    new bootstrap.Modal('#paymentModal').show();
+}
+
+function submitPayment() {
+    const formData = new FormData($('#paymentForm')[0]);
+    const payableId = $('#payableId').val();
+    
+    $.ajax({
+        url: `/accounting/api/payables/${payableId}/payment`,
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(result) {
+            if (result.success) {
+                showToast('付款成功', 'success');
+                location.reload();
+            } else {
+                showToast(result.detail || '操作失敗', 'error');
+            }
+        }
+    });
+}
+
+function deletePayable(id) {
+    if (confirm('確定要刪除此應付帳款嗎？')) {
+        fetch(`/accounting/api/payables/${id}/delete`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('應付帳款已刪除', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '刪除失敗', 'error');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

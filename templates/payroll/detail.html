@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}薪資明細 - 民國 {{ payroll.year }} 年 {{ payroll.month }} 月 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/payroll">薪資管理</a></li>
+                <li class="breadcrumb-item active">民國 {{ payroll.year }} 年 {{ payroll.month }} 月</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-cash-coin"></i> 薪資明細 - 民國 {{ payroll.year }} 年 {{ payroll.month }} 月</h2>
+            <div>
+                <button type="button" class="btn btn-outline-secondary me-2" onclick="printContent('printArea')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+                {% if not payroll.is_paid %}
+                <button type="button" class="btn btn-success" onclick="confirmPay()">
+                    <i class="bi bi-check-circle"></i> 發放薪資
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="printArea">
+    <!-- 彙總 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">員工人數</h6>
+                    <h3 class="text-primary">{{ payroll.details|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">應發總額</h6>
+                    <h3>{{ "{:,.0f}".format(payroll.total_gross or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">扣款總額</h6>
+                    <h3 class="text-danger">{{ "{:,.0f}".format((payroll.total_labor_insurance or 0) + (payroll.total_health_insurance or 0)) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body text-center">
+                    <h6 class="text-white-50">實發總額</h6>
+                    <h3>{{ "{:,.0f}".format(payroll.total_net or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 明細表 -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header">
+            <i class="bi bi-list-ul"></i> 員工薪資明細
+            <span class="badge bg-{{ 'success' if payroll.is_paid else 'warning' }} ms-2">
+                {{ '已發放' if payroll.is_paid else '待發放' }}
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead>
+                        <tr class="table-light">
+                            <th rowspan="2" class="align-middle">員工</th>
+                            <th colspan="4" class="text-center">應發項目</th>
+                            <th colspan="3" class="text-center">扣款項目</th>
+                            <th rowspan="2" class="align-middle text-end">實發金額</th>
+                        </tr>
+                        <tr class="table-light">
+                            <th class="text-end">底薪</th>
+                            <th class="text-end">出勤天數</th>
+                            <th class="text-end">獎金</th>
+                            <th class="text-end">加班費</th>
+                            <th class="text-end">勞保</th>
+                            <th class="text-end">健保</th>
+                            <th class="text-end">其他扣款</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in payroll.details %}
+                        <tr>
+                            <td>
+                                <strong>{{ detail.employee.name if detail.employee else '-' }}</strong>
+                                <br><small class="text-muted">{{ detail.employee.employee_code if detail.employee else '' }}</small>
+                            </td>
+                            <td class="text-end">{{ "{:,.0f}".format(detail.base_salary or 0) }}</td>
+                            <td class="text-end">{{ detail.work_days or 0 }} 天</td>
+                            <td class="text-end">{{ "{:,.0f}".format(detail.bonus or 0) }}</td>
+                            <td class="text-end">{{ "{:,.0f}".format(detail.overtime_pay or 0) }}</td>
+                            <td class="text-end text-danger">{{ "{:,.0f}".format(detail.labor_insurance or 0) }}</td>
+                            <td class="text-end text-danger">{{ "{:,.0f}".format(detail.health_insurance or 0) }}</td>
+                            <td class="text-end text-danger">{{ "{:,.0f}".format(detail.other_deduction or 0) }}</td>
+                            <td class="text-end text-primary"><strong>{{ "{:,.0f}".format(detail.net_salary or 0) }}</strong></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">無明細資料</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <td><strong>合計</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(payroll.details|sum(attribute='base_salary') or 0) }}</strong></td>
+                            <td></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(payroll.details|sum(attribute='bonus') or 0) }}</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(payroll.details|sum(attribute='overtime_pay') or 0) }}</strong></td>
+                            <td class="text-end text-danger"><strong>{{ "{:,.0f}".format(payroll.total_labor_insurance or 0) }}</strong></td>
+                            <td class="text-end text-danger"><strong>{{ "{:,.0f}".format(payroll.total_health_insurance or 0) }}</strong></td>
+                            <td class="text-end text-danger"><strong>{{ "{:,.0f}".format(payroll.details|sum(attribute='other_deduction') or 0) }}</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(payroll.total_net or 0) }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/payroll" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmPay() {
+    if (confirm('確定要發放此月薪資嗎？發放後將無法修改。')) {
+        fetch('/payroll/api/{{ payroll.id }}/pay', { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('薪資已發放', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '操作失敗', 'error');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

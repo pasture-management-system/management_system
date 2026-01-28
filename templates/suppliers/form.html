@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}{% if supplier %}編輯廠商{% else %}新增廠商{% endif %} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/suppliers">廠商資料</a></li>
+                <li class="breadcrumb-item active">{% if supplier %}編輯廠商{% else %}新增廠商{% endif %}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-{% if supplier %}pencil{% else %}plus-circle{% endif %}"></i> {% if supplier %}編輯廠商{% else %}新增廠商{% endif %}</h2>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form id="supplierForm" action="/suppliers/api/{% if supplier %}{{ supplier.id }}/update{% else %}create{% endif %}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label required">廠商編號</label>
+                    <input type="text" class="form-control" name="supplier_code" value="{{ supplier.supplier_code if supplier else supplier_code }}" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label required">廠商名稱</label>
+                    <input type="text" class="form-control" name="name" value="{{ supplier.name if supplier else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">負責人</label>
+                    <input type="text" class="form-control" name="contact_person" value="{{ supplier.contact_person if supplier else '' }}">
+                </div>
+                
+                <div class="col-md-12">
+                    <label class="form-label">地址</label>
+                    <input type="text" class="form-control" name="address" value="{{ supplier.address if supplier else '' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">電話</label>
+                    <input type="text" class="form-control" name="phone" value="{{ supplier.phone if supplier else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">傳真</label>
+                    <input type="text" class="form-control" name="fax" value="{{ supplier.fax if supplier else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">手機</label>
+                    <input type="text" class="form-control" name="mobile" value="{{ supplier.mobile if supplier else '' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">統一編號</label>
+                    <input type="text" class="form-control" name="tax_id" value="{{ supplier.tax_id if supplier else '' }}" maxlength="8">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">電子郵件</label>
+                    <input type="email" class="form-control" name="email" value="{{ supplier.email if supplier else '' }}">
+                </div>
+                <div class="col-md-4"></div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">銀行名稱</label>
+                    <input type="text" class="form-control" name="bank_name" value="{{ supplier.bank_name if supplier else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">銀行帳號</label>
+                    <input type="text" class="form-control" name="bank_account" value="{{ supplier.bank_account if supplier else '' }}">
+                </div>
+                <div class="col-md-4"></div>
+                
+                <div class="col-md-12">
+                    <label class="form-label">備註</label>
+                    <textarea class="form-control" name="notes" rows="3">{{ supplier.notes if supplier else '' }}</textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between">
+                <a href="/suppliers" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> 返回列表
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> {% if supplier %}更新{% else %}建立{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('supplierForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/suppliers';
+            }, 1000);
+        } else {
+            showToast(result.detail || '操作失敗', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}

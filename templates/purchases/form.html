@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}{% if purchase %}編輯進貨單{% else %}新增進貨單{% endif %} - 清發畜牧場管理系統{% endblock %}
+
+{% block extra_css %}
+<style>
+.detail-row td { vertical-align: middle; }
+.remove-btn { cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/purchases">進貨單管理</a></li>
+                <li class="breadcrumb-item active">{% if purchase %}編輯進貨單{% else %}新增進貨單{% endif %}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-{% if purchase %}pencil{% else %}plus-circle{% endif %}"></i> {% if purchase %}編輯進貨單{% else %}新增進貨單{% endif %}</h2>
+    </div>
+</div>
+
+<form id="purchaseForm" action="/purchases/api/{% if purchase %}{{ purchase.id }}/update{% else %}create{% endif %}" method="POST">
+    <!-- 基本資料 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-info-circle"></i> 基本資料
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label required">進貨單號</label>
+                    <input type="text" class="form-control" name="purchase_number" id="purchaseNumber" value="{{ purchase.purchase_number if purchase else purchase_number }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label required">進貨日期</label>
+                    <input type="date" class="form-control" name="purchase_date" id="purchaseDate" value="{{ purchase.purchase_date.strftime('%Y-%m-%d') if purchase and purchase.purchase_date else '' }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label required">廠商</label>
+                    <select class="form-select" name="supplier_id" id="supplierId" required>
+                        <option value="">請選擇廠商</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if purchase and purchase.supplier_id == supplier.id %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">單價 (每公斤)</label>
+                    <input type="number" class="form-control" name="unit_price" id="unitPrice" value="{{ purchase.unit_price if purchase else '' }}" step="0.01" min="0">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 牛隻明細 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-ul"></i> 牛隻明細</span>
+            <button type="button" class="btn btn-sm btn-success" onclick="addDetailRow()">
+                <i class="bi bi-plus"></i> 新增牛隻
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0" id="detailTable">
+                    <thead>
+                        <tr>
+                            <th width="50">#</th>
+                            <th>牛隻編號</th>
+                            <th width="120">類別</th>
+                            <th width="150">重量 (kg)</th>
+                            <th width="150">單價</th>
+                            <th width="150">金額</th>
+                            <th width="80">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if purchase and purchase.details %}
+                            {% for detail in purchase.details %}
+                            <tr class="detail-row">
+                                <td class="row-number">{{ loop.index }}</td>
+                                <td>
+                                    <input type="hidden" name="detail_id[]" value="{{ detail.id }}">
+                                    <input type="text" class="form-control form-control-sm" name="serial_number[]" value="{{ detail.cattle.serial_number if detail.cattle else '' }}" readonly>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" name="category[]" disabled>
+                                        <option value="S" {% if detail.cattle and detail.cattle.category == 'S' %}selected{% endif %}>小牛 (S)</option>
+                                        <option value="K" {% if detail.cattle and detail.cattle.category == 'K' %}selected{% endif %}>整隻牛 (K)</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm weight-input" name="weight[]" value="{{ detail.weight or '' }}" step="0.1" min="0" onchange="calculateAmount(this)">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm price-input" name="price[]" value="{{ detail.unit_price or '' }}" step="0.01" min="0" onchange="calculateAmount(this)">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm amount-input" name="amount[]" value="{{ detail.amount or '' }}" readonly>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-btn" onclick="removeRow(this)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td colspan="3" class="text-end"><strong>合計</strong></td>
+                            <td><input type="text" class="form-control form-control-sm" id="totalWeight" readonly></td>
+                            <td></td>
+                            <td><input type="text" class="form-control form-control-sm" id="totalAmount" readonly></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 備註 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <label class="form-label">備註</label>
+            <textarea class="form-control" name="notes" rows="3">{{ purchase.notes if purchase else '' }}</textarea>
+        </div>
+    </div>
+    
+    <div class="d-flex justify-content-between">
+        <a href="/purchases" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg"></i> {% if purchase %}更新{% else %}建立{% endif %}
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let rowCounter = {{ purchase.details|length if purchase and purchase.details else 0 }};
+
+// 新增明細行
+function addDetailRow() {
+    rowCounter++;
+    const tbody = $('#detailTable tbody');
+    const date = $('#purchaseDate').val();
+    const unitPrice = $('#unitPrice').val();
+    
+    // 取得新的牛隻編號
+    $.get('/cattle/api/next-serial', { date: date }, function(response) {
+        if (response.success) {
+            const row = `
+                <tr class="detail-row">
+                    <td class="row-number">${rowCounter}</td>
+                    <td>
+                        <input type="hidden" name="detail_id[]" value="">
+                        <input type="text" class="form-control form-control-sm" name="serial_number[]" value="${response.serial_number}" readonly>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" name="category[]">
+                            <option value="S">小牛 (S)</option>
+                            <option value="K">整隻牛 (K)</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm weight-input" name="weight[]" step="0.1" min="0" onchange="calculateAmount(this)">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm price-input" name="price[]" value="${unitPrice}" step="0.01" min="0" onchange="calculateAmount(this)">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm amount-input" name="amount[]" readonly>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-btn" onclick="removeRow(this)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+            updateRowNumbers();
+        }
+    });
+}
+
+// 移除明細行
+function removeRow(btn) {
+    $(btn).closest('tr').remove();
+    updateRowNumbers();
+    calculateTotal();
+}
+
+// 更新行號
+function updateRowNumbers() {
+    $('.detail-row').each(function(index) {
+        $(this).find('.row-number').text(index + 1);
+    });
+}
+
+// 計算金額
+function calculateAmount(input) {
+    const row = $(input).closest('tr');
+    const weight = parseFloat(row.find('.weight-input').val()) || 0;
+    const price = parseFloat(row.find('.price-input').val()) || 0;
+    const amount = weight * price;
+    row.find('.amount-input').val(amount.toFixed(0));
+    calculateTotal();
+}
+
+// 計算合計
+function calculateTotal() {
+    let totalWeight = 0;
+    let totalAmount = 0;
+    
+    $('.detail-row').each(function() {
+        totalWeight += parseFloat($(this).find('.weight-input').val()) || 0;
+        totalAmount += parseFloat($(this).find('.amount-input').val()) || 0;
+    });
+    
+    $('#totalWeight').val(totalWeight.toFixed(1));
+    $('#totalAmount').val(totalAmount.toFixed(0));
+}
+
+// 單價變更時更新所有明細
+$('#unitPrice').on('change', function() {
+    const unitPrice = $(this).val();
+    $('.price-input').each(function() {
+        if (!$(this).val()) {
+            $(this).val(unitPrice);
+        }
+    });
+});
+
+// 表單提交
+$('#purchaseForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    if ($('.detail-row').length === 0) {
+        showToast('請至少新增一筆牛隻明細', 'warning');
+        return;
+    }
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/purchases';
+            }, 1000);
+        } else {
+            showToast(result.detail || '操作失敗', 'error');
+        }
+    });
+});
+
+// 初始化計算
+$(document).ready(function() {
+    calculateTotal();
+});
+</script>
+{% endblock %}

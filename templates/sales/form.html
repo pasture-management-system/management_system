@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}{% if sale %}編輯銷貨單{% else %}新增銷貨單{% endif %} - 清發畜牧場管理系統{% endblock %}
+
+{% block extra_css %}
+<style>
+.cattle-select-row { cursor: pointer; }
+.cattle-select-row:hover { background-color: #f8f9fa; }
+.cattle-select-row.selected { background-color: #e7f3ff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/sales">銷貨單管理</a></li>
+                <li class="breadcrumb-item active">{% if sale %}編輯銷貨單{% else %}新增銷貨單{% endif %}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-{% if sale %}pencil{% else %}plus-circle{% endif %}"></i> {% if sale %}編輯銷貨單{% else %}新增銷貨單{% endif %}</h2>
+    </div>
+</div>
+
+<form id="salesForm" action="/sales/api/{% if sale %}{{ sale.id }}/update{% else %}create{% endif %}" method="POST">
+    <!-- 基本資料 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-info-circle"></i> 基本資料
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label required">銷貨單號</label>
+                    <input type="text" class="form-control" name="sales_number" id="salesNumber" value="{{ sale.sales_number if sale else sales_number }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label required">銷貨日期</label>
+                    <input type="date" class="form-control" name="sales_date" id="salesDate" value="{{ sale.sales_date.strftime('%Y-%m-%d') if sale and sale.sales_date else '' }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label required">客戶</label>
+                    <select class="form-select" name="customer_id" id="customerId" required>
+                        <option value="">請選擇客戶</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}" {% if sale and sale.customer_id == customer.id %}selected{% endif %}>
+                            {{ customer.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">單價 (每公斤)</label>
+                    <input type="number" class="form-control" name="unit_price" id="unitPrice" value="{{ sale.unit_price if sale else '' }}" step="0.01" min="0">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 牛隻選擇 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-check2-square"></i> 選擇銷售牛隻</span>
+            <span class="badge bg-primary" id="selectedCount">已選擇 0 頭</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-hover mb-0" id="cattleTable">
+                    <thead class="sticky-top bg-white">
+                        <tr>
+                            <th width="50">
+                                <input type="checkbox" class="form-check-input" id="selectAll">
+                            </th>
+                            <th>牛隻編號</th>
+                            <th>類別</th>
+                            <th>進場日期</th>
+                            <th>目前重量</th>
+                            <th>來源廠商</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cattle in available_cattle %}
+                        <tr class="cattle-select-row" data-id="{{ cattle.id }}" data-weight="{{ cattle.current_weight or 0 }}">
+                            <td>
+                                <input type="checkbox" class="form-check-input cattle-checkbox" name="cattle_ids[]" value="{{ cattle.id }}">
+                            </td>
+                            <td><strong>{{ cattle.serial_number }}</strong></td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if cattle.category == 'S' else 'warning' }}">
+                                    {{ '小牛' if cattle.category == 'S' else '整隻牛' }}
+                                </span>
+                            </td>
+                            <td>{{ cattle.entry_date.strftime('%Y-%m-%d') if cattle.entry_date else '-' }}</td>
+                            <td>{{ cattle.current_weight or '-' }} kg</td>
+                            <td>{{ cattle.supplier.name if cattle.supplier else '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">目前沒有可銷售的牛隻</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 銷售明細 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-list-ul"></i> 銷售明細
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0" id="detailTable">
+                    <thead>
+                        <tr>
+                            <th width="50">#</th>
+                            <th>牛隻編號</th>
+                            <th>類別</th>
+                            <th width="150">出場重量 (kg)</th>
+                            <th width="150">單價</th>
+                            <th width="150">金額</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 動態生成 -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td colspan="3" class="text-end"><strong>合計</strong></td>
+                            <td><input type="text" class="form-control form-control-sm" id="totalWeight" readonly></td>
+                            <td></td>
+                            <td><input type="text" class="form-control form-control-sm" id="totalAmount" readonly></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 備註 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <label class="form-label">備註</label>
+            <textarea class="form-control" name="notes" rows="3">{{ sale.notes if sale else '' }}</textarea>
+        </div>
+    </div>
+    
+    <div class="d-flex justify-content-between">
+        <a href="/sales" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg"></i> {% if sale %}更新{% else %}建立{% endif %}
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 全選
+$('#selectAll').on('change', function() {
+    $('.cattle-checkbox').prop('checked', this.checked);
+    updateDetails();
+});
+
+// 單選
+$('.cattle-checkbox').on('change', function() {
+    updateDetails();
+});
+
+// 行點擊
+$('.cattle-select-row').on('click', function(e) {
+    if (!$(e.target).is('input')) {
+        const checkbox = $(this).find('.cattle-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        updateDetails();
+    }
+});
+
+// 更新明細
+function updateDetails() {
+    const tbody = $('#detailTable tbody');
+    tbody.empty();
+    
+    const unitPrice = parseFloat($('#unitPrice').val()) || 0;
+    let count = 0;
+    
+    $('.cattle-checkbox:checked').each(function() {
+        count++;
+        const row = $(this).closest('tr');
+        const id = row.data('id');
+        const weight = row.data('weight');
+        const serialNumber = row.find('td:eq(1)').text().trim();
+        const category = row.find('td:eq(2)').text().trim();
+        
+        const html = `
+            <tr class="detail-row">
+                <td>${count}</td>
+                <td>
+                    <input type="hidden" name="detail_cattle_id[]" value="${id}">
+                    ${serialNumber}
+                </td>
+                <td>${category}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm weight-input" name="detail_weight[]" value="${weight}" step="0.1" min="0" onchange="calculateTotal()">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm price-input" name="detail_price[]" value="${unitPrice}" step="0.01" min="0" onchange="calculateTotal()">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm amount-input" name="detail_amount[]" value="${(weight * unitPrice).toFixed(0)}" readonly>
+                </td>
+            </tr>
+        `;
+        tbody.append(html);
+    });
+    
+    $('#selectedCount').text(`已選擇 ${count} 頭`);
+    calculateTotal();
+}
+
+// 計算合計
+function calculateTotal() {
+    let totalWeight = 0;
+    let totalAmount = 0;
+    
+    $('.detail-row').each(function() {
+        const weight = parseFloat($(this).find('.weight-input').val()) || 0;
+        const price = parseFloat($(this).find('.price-input').val()) || 0;
+        const amount = weight * price;
+        
+        $(this).find('.amount-input').val(amount.toFixed(0));
+        totalWeight += weight;
+        totalAmount += amount;
+    });
+    
+    $('#totalWeight').val(totalWeight.toFixed(1));
+    $('#totalAmount').val(totalAmount.toFixed(0));
+}
+
+// 單價變更
+$('#unitPrice').on('change', function() {
+    const unitPrice = $(this).val();
+    $('.price-input').val(unitPrice);
+    calculateTotal();
+});
+
+// 表單提交
+$('#salesForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    if ($('.cattle-checkbox:checked').length === 0) {
+        showToast('請至少選擇一頭牛隻', 'warning');
+        return;
+    }
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/sales';
+            }, 1000);
+        } else {
+            showToast(result.detail || '操作失敗', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}

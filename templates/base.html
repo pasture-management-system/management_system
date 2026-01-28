@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}清發畜牧場管理系統{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 手機版側邊欄遮罩 -->
+    <div class="sidebar-overlay"></div>
+    
+    <!-- 側邊欄 -->
+    <div class="wrapper">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h4><i class="bi bi-building"></i> 清發畜牧場</h4>
+                <small>管理系統</small>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'dashboard' %}active{% endif %}" href="/" data-bs-toggle="tooltip" data-bs-placement="right" title="儀表板">
+                        <i class="bi bi-speedometer2"></i> <span>儀表板</span>
+                    </a>
+                </li>
+                <li class="nav-item nav-section">
+                    <span>基本資料</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'customers' %}active{% endif %}" href="/customers" data-bs-toggle="tooltip" data-bs-placement="right" title="客戶資料">
+                        <i class="bi bi-people"></i> <span>客戶資料</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'suppliers' %}active{% endif %}" href="/suppliers" data-bs-toggle="tooltip" data-bs-placement="right" title="廠商資料">
+                        <i class="bi bi-truck"></i> <span>廠商資料</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'employees' %}active{% endif %}" href="/employees" data-bs-toggle="tooltip" data-bs-placement="right" title="員工資料">
+                        <i class="bi bi-person-badge"></i> <span>員工資料</span>
+                    </a>
+                </li>
+                <li class="nav-item nav-section">
+                    <span>進銷存管理</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'cattle' %}active{% endif %}" href="/cattle" data-bs-toggle="tooltip" data-bs-placement="right" title="牛隻管理">
+                        <i class="bi bi-heart-pulse"></i> <span>牛隻管理</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'purchases' %}active{% endif %}" href="/purchases" data-bs-toggle="tooltip" data-bs-placement="right" title="進貨作業">
+                        <i class="bi bi-box-arrow-in-down"></i> <span>進貨作業</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'sales' %}active{% endif %}" href="/sales" data-bs-toggle="tooltip" data-bs-placement="right" title="銷貨作業">
+                        <i class="bi bi-box-arrow-up"></i> <span>銷貨作業</span>
+                    </a>
+                </li>
+                <li class="nav-item nav-section">
+                    <span>財務管理</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'accounting' %}active{% endif %}" href="/accounting/payables" data-bs-toggle="tooltip" data-bs-placement="right" title="會計系統">
+                        <i class="bi bi-cash-stack"></i> <span>會計系統</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'payroll' %}active{% endif %}" href="/payroll" data-bs-toggle="tooltip" data-bs-placement="right" title="薪資系統">
+                        <i class="bi bi-wallet2"></i> <span>薪資系統</span>
+                    </a>
+                </li>
+                <li class="nav-item nav-section">
+                    <span>報表與系統</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'reports' %}active{% endif %}" href="/reports" data-bs-toggle="tooltip" data-bs-placement="right" title="營業報表">
+                        <i class="bi bi-graph-up"></i> <span>營業報表</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if active_menu == 'system' %}active{% endif %}" href="/system" data-bs-toggle="tooltip" data-bs-placement="right" title="系統管理">
+                        <i class="bi bi-gear"></i> <span>系統管理</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 主內容區 -->
+        <div id="content">
+            <!-- 頂部導航 -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn btn-outline-secondary">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div class="ms-auto d-flex align-items-center">
+                        <span class="me-3 text-muted"><i class="bi bi-calendar3"></i> <span id="currentDate"></span></span>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> 管理員
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/auth/logout"><i class="bi bi-box-arrow-right"></i> 登出</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- 頁面內容 -->
+            <main class="container-fluid py-4">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Custom JS -->
+    <script src="/static/js/main.js"></script>
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // 顯示當前日期
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('zh-TW');
+        
+        // 初始化 Bootstrap Tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // 側邊欄切換
+        document.getElementById('sidebarCollapse').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+            
+            // 當側邊欄縮小時啟用 tooltips，展開時禁用
+            if (sidebar.classList.contains('collapsed')) {
+                tooltipList.forEach(function(tooltip) {
+                    tooltip.enable();
+                });
+            } else {
+                tooltipList.forEach(function(tooltip) {
+                    tooltip.disable();
+                });
+            }
+        });
+        
+        // 手機版：點擊遮罩關閉側邊欄
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', function() {
+                document.getElementById('sidebar').classList.remove('active');
+                this.classList.remove('active');
+            });
+        }
+        
+        // 手機版：側邊欄切換
+        if (window.innerWidth <= 768) {
+            document.getElementById('sidebarCollapse').addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.querySelector('.sidebar-overlay');
+                sidebar.classList.toggle('active');
+                if (overlay) {
+                    overlay.classList.toggle('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

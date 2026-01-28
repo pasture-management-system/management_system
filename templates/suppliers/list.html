@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}廠商資料 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-truck"></i> 廠商資料</h2>
+            <p class="text-muted mb-0">管理廠商基本資料</p>
+        </div>
+        <div>
+            <a href="/suppliers/create" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增廠商
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋列 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" id="searchKeyword" class="form-control" placeholder="搜尋廠商名稱、負責人、電話...">
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <button type="button" class="btn btn-outline-secondary" onclick="printContent('supplierTable')">
+                    <i class="bi bi-printer"></i> 列印清單
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 廠商列表 -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="supplierTable">
+            <table class="table table-hover mb-0" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>廠商編號</th>
+                        <th>廠商名稱</th>
+                        <th>負責人</th>
+                        <th>電話</th>
+                        <th>手機</th>
+                        <th>地址</th>
+                        <th width="120">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for supplier in suppliers %}
+                    <tr>
+                        <td>{{ supplier.supplier_code }}</td>
+                        <td><strong>{{ supplier.name }}</strong></td>
+                        <td>{{ supplier.contact_person or '-' }}</td>
+                        <td>{{ supplier.phone or '-' }}</td>
+                        <td>{{ supplier.mobile or '-' }}</td>
+                        <td>{{ supplier.address or '-' }}</td>
+                        <td class="action-buttons">
+                            <a href="/suppliers/{{ supplier.id }}/edit" class="btn btn-sm btn-outline-primary" title="編輯">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSupplier({{ supplier.id }})" title="刪除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無廠商資料</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('searchKeyword').addEventListener('input', function() {
+    const keyword = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#dataTable tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(keyword) ? '' : 'none';
+    });
+});
+
+function deleteSupplier(id) {
+    if (confirm('確定要刪除此廠商嗎？')) {
+        fetch(`/suppliers/api/${id}/delete`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('廠商已刪除', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '刪除失敗', 'error');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

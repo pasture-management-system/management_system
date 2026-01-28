@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}銷貨單管理 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-cart-dash"></i> 銷貨單管理</h2>
+            <p class="text-muted mb-0">管理牛隻銷貨作業</p>
+        </div>
+        <div>
+            <a href="/sales/deaths" class="btn btn-outline-danger me-2">
+                <i class="bi bi-x-circle"></i> 死亡記錄
+            </a>
+            <a href="/sales/create" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增銷貨單
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋列 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" id="searchKeyword" class="form-control" placeholder="搜尋單號、客戶...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select id="filterYear" class="form-select">
+                    <option value="">全部年度</option>
+                    {% for year in years %}
+                    <option value="{{ year }}">民國 {{ year }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="filterMonth" class="form-select">
+                    <option value="">全部月份</option>
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}">{{ m }} 月</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="filterCustomer" class="form-select">
+                    <option value="">全部客戶</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="button" class="btn btn-outline-primary me-2" onclick="searchSales()">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="printContent('salesTable')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 銷貨單列表 -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="salesTable">
+            <table class="table table-hover mb-0" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>銷貨單號</th>
+                        <th>銷貨日期</th>
+                        <th>客戶</th>
+                        <th class="text-end">牛隻數量</th>
+                        <th class="text-end">總重量</th>
+                        <th class="text-end">總金額</th>
+                        <th width="150">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td><strong>{{ sale.sales_number }}</strong></td>
+                        <td>{{ sale.sales_date.strftime('%Y-%m-%d') if sale.sales_date else '-' }}</td>
+                        <td>{{ sale.customer.name if sale.customer else '-' }}</td>
+                        <td class="text-end">{{ sale.details|length }} 頭</td>
+                        <td class="text-end">{{ "{:,.1f}".format(sale.total_weight or 0) }} kg</td>
+                        <td class="text-end">{{ "{:,.0f}".format(sale.total_amount or 0) }}</td>
+                        <td class="action-buttons">
+                            <a href="/sales/{{ sale.id }}" class="btn btn-sm btn-outline-info" title="查看">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/sales/{{ sale.id }}/edit" class="btn btn-sm btn-outline-primary" title="編輯">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSale({{ sale.id }})" title="刪除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無銷貨單資料</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function searchSales() {
+    const keyword = $('#searchKeyword').val();
+    const year = $('#filterYear').val();
+    const month = $('#filterMonth').val();
+    const customer = $('#filterCustomer').val();
+    
+    let url = '/sales?';
+    if (keyword) url += `keyword=${keyword}&`;
+    if (year) url += `year=${year}&`;
+    if (month) url += `month=${month}&`;
+    if (customer) url += `customer_id=${customer}&`;
+    
+    window.location.href = url;
+}
+
+function deleteSale(id) {
+    if (confirm('確定要刪除此銷貨單嗎？相關牛隻狀態會還原為在場。')) {
+        fetch(`/sales/api/${id}/delete`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('銷貨單已刪除', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '刪除失敗', 'error');
+                }
+            });
+    }
+}
+
+$('#searchKeyword').keypress(function(e) {
+    if (e.which == 13) searchSales();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}損益報表 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/reports">營業報表</a></li>
+                <li class="breadcrumb-item active">損益報表</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-cash-stack"></i> 損益報表</h2>
+            <button type="button" class="btn btn-outline-secondary" onclick="printContent('reportArea')">
+                <i class="bi bi-printer"></i> 列印報表
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 篩選條件 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">年度</label>
+                <select id="filterYear" class="form-select">
+                    {% for year in years %}
+                    <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>民國 {{ year }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="button" class="btn btn-primary" onclick="refreshReport()">
+                    <i class="bi bi-arrow-clockwise"></i> 重新整理
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="reportArea">
+    <!-- 彙總卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">銷貨收入</h6>
+                    <h3>{{ "{:,.0f}".format(summary.sales_revenue or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-danger text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">進貨成本</h6>
+                    <h3>{{ "{:,.0f}".format(summary.purchase_cost or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">雜項支出</h6>
+                    <h3>{{ "{:,.0f}".format(summary.misc_expense or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-{{ 'primary' if summary.profit > 0 else 'secondary' }} text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">淨利潤</h6>
+                    <h3>{{ "{:,.0f}".format(summary.profit or 0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 圖表區 -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> 月度損益趨勢
+                </div>
+                <div class="card-body">
+                    <canvas id="profitChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header">
+                    <i class="bi bi-pie-chart"></i> 支出比例
+                </div>
+                <div class="card-body">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 明細表 -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header">
+            <i class="bi bi-table"></i> 月度損益明細
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>月份</th>
+                            <th class="text-end">銷貨收入</th>
+                            <th class="text-end">進貨成本</th>
+                            <th class="text-end">雜項支出</th>
+                            <th class="text-end">毛利</th>
+                            <th class="text-end">毛利率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in monthly_data %}
+                        <tr>
+                            <td><strong>{{ row.month }} 月</strong></td>
+                            <td class="text-end text-success">{{ "{:,.0f}".format(row.revenue or 0) }}</td>
+                            <td class="text-end text-danger">{{ "{:,.0f}".format(row.cost or 0) }}</td>
+                            <td class="text-end text-warning">{{ "{:,.0f}".format(row.expense or 0) }}</td>
+                            <td class="text-end text-{{ 'primary' if row.profit > 0 else 'secondary' }}">
+                                <strong>{{ "{:,.0f}".format(row.profit or 0) }}</strong>
+                            </td>
+                            <td class="text-end">
+                                {% if row.revenue > 0 %}
+                                {{ "{:.1f}%".format((row.profit / row.revenue) * 100) }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">無資料</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <td><strong>年度合計</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(summary.sales_revenue or 0) }}</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(summary.purchase_cost or 0) }}</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(summary.misc_expense or 0) }}</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(summary.profit or 0) }}</strong></td>
+                            <td class="text-end">
+                                {% if summary.sales_revenue > 0 %}
+                                <strong>{{ "{:.1f}%".format((summary.profit / summary.sales_revenue) * 100) }}</strong>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/reports" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 返回報表首頁
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const chartData = {{ chart_data | tojson }};
+
+// 損益趨勢圖
+new Chart(document.getElementById('profitChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: chartData.labels,
+        datasets: [
+            {
+                label: '銷貨收入',
+                data: chartData.revenue,
+                backgroundColor: 'rgba(40, 167, 69, 0.8)'
+            },
+            {
+                label: '支出成本',
+                data: chartData.cost,
+                backgroundColor: 'rgba(220, 53, 69, 0.8)'
+            },
+            {
+                type: 'line',
+                label: '淨利潤',
+                data: chartData.profit,
+                borderColor: '#0d6efd',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                tension: 0.4
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// 支出比例圖
+new Chart(document.getElementById('expenseChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        labels: ['進貨成本', '雜項支出'],
+        datasets: [{
+            data: [{{ summary.purchase_cost or 0 }}, {{ summary.misc_expense or 0 }}],
+            backgroundColor: ['#dc3545', '#ffc107']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function refreshReport() {
+    const year = $('#filterYear').val();
+    window.location.href = `/reports/profit?year=${year}`;
+}
+</script>
+{% endblock %}

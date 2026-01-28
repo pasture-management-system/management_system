@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report_title }} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/reports">營業報表</a></li>
+                <li class="breadcrumb-item active">{{ report_title }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-{{ report_icon }}"></i> {{ report_title }}</h2>
+            <button type="button" class="btn btn-outline-secondary" onclick="printContent('reportArea')">
+                <i class="bi bi-printer"></i> 列印報表
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 篩選條件 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">年度</label>
+                <select id="filterYear" class="form-select">
+                    {% for year in years %}
+                    <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>民國 {{ year }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">報表類型</label>
+                <select id="reportType" class="form-select">
+                    <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>月報表</option>
+                    <option value="quarterly" {% if report_type == 'quarterly' %}selected{% endif %}>季報表</option>
+                    <option value="yearly" {% if report_type == 'yearly' %}selected{% endif %}>年報表</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <button type="button" class="btn btn-primary" onclick="refreshReport()">
+                    <i class="bi bi-arrow-clockwise"></i> 重新整理
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="reportArea">
+    <!-- 彙總卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-{{ summary_color }} text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">{{ summary_label }}</h6>
+                    <h2>{{ "{:,.0f}".format(summary_total or 0) }}</h2>
+                </div>
+            </div>
+        </div>
+        {% if show_count %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">筆數</h6>
+                    <h2>{{ summary_count or 0 }}</h2>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if show_average %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">平均金額</h6>
+                    <h2>{{ "{:,.0f}".format(summary_average or 0) }}</h2>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 圖表區 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-bar-chart"></i> 趨勢圖
+        </div>
+        <div class="card-body">
+            <canvas id="reportChart" height="100"></canvas>
+        </div>
+    </div>
+    
+    <!-- 明細表 -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header">
+            <i class="bi bi-table"></i> 明細數據
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>期間</th>
+                            {% for col in columns %}
+                            <th class="text-end">{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                        <tr>
+                            <td><strong>{{ row.period }}</strong></td>
+                            {% for value in row.values %}
+                            <td class="text-end">{{ "{:,.0f}".format(value or 0) }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="{{ columns|length + 1 }}" class="text-center text-muted py-4">無資料</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if totals %}
+                    <tfoot>
+                        <tr class="table-light">
+                            <td><strong>合計</strong></td>
+                            {% for total in totals %}
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(total or 0) }}</strong></td>
+                            {% endfor %}
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/reports" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 返回報表首頁
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// 圖表
+const ctx = document.getElementById('reportChart').getContext('2d');
+const chartData = {{ chart_data | tojson }};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: chartData.labels,
+        datasets: [{
+            label: '{{ chart_label }}',
+            data: chartData.values,
+            backgroundColor: '{{ chart_color }}',
+            borderColor: '{{ chart_border }}',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+function refreshReport() {
+    const year = $('#filterYear').val();
+    const type = $('#reportType').val();
+    window.location.href = `${window.location.pathname}?year=${year}&type=${type}`;
+}
+</script>
+{% endblock %}

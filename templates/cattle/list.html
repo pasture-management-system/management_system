@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}牛隻資料 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-card-list"></i> 牛隻資料</h2>
+            <p class="text-muted mb-0">管理牛隻身份編號</p>
+        </div>
+        <div>
+            <a href="/cattle/create" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增牛隻
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 統計卡片 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-white-50">在場牛隻</h6>
+                        <h3 id="cattleInFarm">0</h3>
+                    </div>
+                    <i class="bi bi-house-door stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-white-50">已售出</h6>
+                        <h3 id="cattleSold">0</h3>
+                    </div>
+                    <i class="bi bi-cash-coin stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm stat-card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-white-50">已死亡</h6>
+                        <h3 id="cattleDead">0</h3>
+                    </div>
+                    <i class="bi bi-x-circle stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-white-50">總計</h6>
+                        <h3 id="cattleTotal">0</h3>
+                    </div>
+                    <i class="bi bi-clipboard-data stat-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋列 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" id="searchKeyword" class="form-control" placeholder="搜尋牛隻編號...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select id="filterCategory" class="form-select">
+                    <option value="">全部類別</option>
+                    <option value="S">小牛 (S)</option>
+                    <option value="K">整隻牛 (K)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="filterStatus" class="form-select">
+                    <option value="">全部狀態</option>
+                    <option value="在場" selected>在場</option>
+                    <option value="已售出">已售出</option>
+                    <option value="死亡">死亡</option>
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="button" class="btn btn-outline-secondary" onclick="printContent('cattleTable')">
+                    <i class="bi bi-printer"></i> 列印清單
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 牛隻列表 -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="cattleTable">
+            <table class="table table-hover mb-0" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>牛隻編號</th>
+                        <th>類別</th>
+                        <th>進場日期</th>
+                        <th>進場重量</th>
+                        <th>目前重量</th>
+                        <th>狀態</th>
+                        <th>來源廠商</th>
+                        <th width="150">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cattle in cattle_list %}
+                    <tr data-category="{{ cattle.category }}" data-status="{{ cattle.status }}">
+                        <td><strong>{{ cattle.serial_number }}</strong></td>
+                        <td>
+                            <span class="badge bg-{{ 'info' if cattle.category == 'S' else 'warning' }}">
+                                {{ '小牛' if cattle.category == 'S' else '整隻牛' }}
+                            </span>
+                        </td>
+                        <td>{{ cattle.entry_date.strftime('%Y-%m-%d') if cattle.entry_date else '-' }}</td>
+                        <td>{{ cattle.entry_weight or '-' }} kg</td>
+                        <td>{{ cattle.current_weight or '-' }} kg</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if cattle.status == '在場' else ('danger' if cattle.status == '死亡' else 'secondary') }}">
+                                {{ cattle.status }}
+                            </span>
+                        </td>
+                        <td>{{ cattle.supplier.name if cattle.supplier else '-' }}</td>
+                        <td class="action-buttons">
+                            <a href="/cattle/{{ cattle.id }}" class="btn btn-sm btn-outline-info" title="查看">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/cattle/{{ cattle.id }}/edit" class="btn btn-sm btn-outline-primary" title="編輯">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if cattle.status == '在場' %}
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="recordDeath({{ cattle.id }})" title="記錄死亡">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無牛隻資料</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 死亡記錄 Modal -->
+<div class="modal fade" id="deathModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">記錄牛隻死亡</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deathForm">
+                    <input type="hidden" id="deathCattleId" name="cattle_id">
+                    <div class="mb-3">
+                        <label class="form-label required">死亡日期</label>
+                        <input type="date" class="form-control" name="death_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">死亡原因</label>
+                        <textarea class="form-control" name="death_reason" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="submitDeath()">確認</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 載入統計數據
+$(document).ready(function() {
+    $.get('/cattle/api/statistics', function(response) {
+        if (response.success) {
+            const data = response.data;
+            $('#cattleInFarm').text(data.in_farm);
+            $('#cattleSold').text(data.sold);
+            $('#cattleDead').text(data.dead);
+            $('#cattleTotal').text(data.total);
+        }
+    });
+});
+
+// 搜尋與篩選
+function filterTable() {
+    const keyword = $('#searchKeyword').val().toLowerCase();
+    const category = $('#filterCategory').val();
+    const status = $('#filterStatus').val();
+    
+    $('#dataTable tbody tr').each(function() {
+        const row = $(this);
+        const text = row.text().toLowerCase();
+        const rowCategory = row.data('category');
+        const rowStatus = row.data('status');
+        
+        let show = true;
+        if (keyword && !text.includes(keyword)) show = false;
+        if (category && rowCategory !== category) show = false;
+        if (status && rowStatus !== status) show = false;
+        
+        row.toggle(show);
+    });
+}
+
+$('#searchKeyword, #filterCategory, #filterStatus').on('input change', filterTable);
+
+// 死亡記錄
+function recordDeath(id) {
+    $('#deathCattleId').val(id);
+    $('#deathForm')[0].reset();
+    new bootstrap.Modal('#deathModal').show();
+}
+
+function submitDeath() {
+    const formData = new FormData($('#deathForm')[0]);
+    const cattleId = $('#deathCattleId').val();
+    
+    $.ajax({
+        url: `/cattle/api/${cattleId}/death`,
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(result) {
+            if (result.success) {
+                showToast('死亡記錄已建立', 'success');
+                location.reload();
+            } else {
+                showToast(result.detail || '操作失敗', 'error');
+            }
+        }
+    });
+}
+
+// 初始篩選（只顯示在場）
+filterTable();
+</script>
+{% endblock %}

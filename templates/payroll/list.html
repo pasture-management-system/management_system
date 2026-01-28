@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}薪資管理 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-cash-coin"></i> 薪資管理</h2>
+            <p class="text-muted mb-0">管理員工薪資計算</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" onclick="showCreatePayroll()">
+                <i class="bi bi-plus-lg"></i> 建立月薪資
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋列 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <select id="filterYear" class="form-select">
+                    <option value="">全部年度</option>
+                    {% for year in years %}
+                    <option value="{{ year }}" {% if current_year == year %}selected{% endif %}>民國 {{ year }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="filterMonth" class="form-select">
+                    <option value="">全部月份</option>
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if current_month == m %}selected{% endif %}>{{ m }} 月</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 text-end">
+                <button type="button" class="btn btn-outline-primary me-2" onclick="searchPayrolls()">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="printContent('payrollTable')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 薪資列表 -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="payrollTable">
+            <table class="table table-hover mb-0" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>年月</th>
+                        <th class="text-end">員工數</th>
+                        <th class="text-end">應發總額</th>
+                        <th class="text-end">勞保總額</th>
+                        <th class="text-end">健保總額</th>
+                        <th class="text-end">實發總額</th>
+                        <th>狀態</th>
+                        <th width="150">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payroll in payrolls %}
+                    <tr>
+                        <td><strong>民國 {{ payroll.year }} 年 {{ payroll.month }} 月</strong></td>
+                        <td class="text-end">{{ payroll.details|length }} 人</td>
+                        <td class="text-end">{{ "{:,.0f}".format(payroll.total_gross or 0) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(payroll.total_labor_insurance or 0) }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(payroll.total_health_insurance or 0) }}</td>
+                        <td class="text-end text-primary"><strong>{{ "{:,.0f}".format(payroll.total_net or 0) }}</strong></td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if payroll.is_paid else 'warning' }}">
+                                {{ '已發放' if payroll.is_paid else '待發放' }}
+                            </span>
+                        </td>
+                        <td class="action-buttons">
+                            <a href="/payroll/{{ payroll.id }}" class="btn btn-sm btn-outline-info" title="查看">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if not payroll.is_paid %}
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="confirmPay({{ payroll.id }})" title="發放">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePayroll({{ payroll.id }})" title="刪除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無薪資資料</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 建立月薪資 Modal -->
+<div class="modal fade" id="createPayrollModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">建立月薪資</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPayrollForm">
+                    <div class="mb-3">
+                        <label class="form-label required">年度</label>
+                        <select class="form-select" name="year" required>
+                            {% for year in years %}
+                            <option value="{{ year }}" {% if current_year == year %}selected{% endif %}>民國 {{ year }} 年</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required">月份</label>
+                        <select class="form-select" name="month" required>
+                            {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if current_month == m %}selected{% endif %}>{{ m }} 月</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 系統將根據員工資料自動計算薪資
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="createPayroll()">建立</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function searchPayrolls() {
+    const year = $('#filterYear').val();
+    const month = $('#filterMonth').val();
+    
+    let url = '/payroll?';
+    if (year) url += `year=${year}&`;
+    if (month) url += `month=${month}&`;
+    
+    window.location.href = url;
+}
+
+function showCreatePayroll() {
+    new bootstrap.Modal('#createPayrollModal').show();
+}
+
+function createPayroll() {
+    const formData = new FormData($('#createPayrollForm')[0]);
+    
+    $.ajax({
+        url: '/payroll/api/create',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(result) {
+            if (result.success) {
+                showToast('月薪資已建立', 'success');
+                location.reload();
+            } else {
+                showToast(result.detail || '建立失敗', 'error');
+            }
+        }
+    });
+}
+
+function confirmPay(id) {
+    if (confirm('確定要發放此月薪資嗎？發放後將無法修改。')) {
+        fetch(`/payroll/api/${id}/pay`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('薪資已發放', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '操作失敗', 'error');
+                }
+            });
+    }
+}
+
+function deletePayroll(id) {
+    if (confirm('確定要刪除此月薪資嗎？')) {
+        fetch(`/payroll/api/${id}/delete`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('薪資已刪除', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '刪除失敗', 'error');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

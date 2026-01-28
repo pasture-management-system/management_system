@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{% if receivable %}編輯應收帳款{% else %}新增應收帳款{% endif %} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/accounting/receivables">應收帳款</a></li>
+                <li class="breadcrumb-item active">{% if receivable %}編輯{% else %}新增{% endif %}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-{% if receivable %}pencil{% else %}plus-circle{% endif %}"></i> {% if receivable %}編輯應收帳款{% else %}新增應收帳款{% endif %}</h2>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form id="receivableForm" action="/accounting/api/receivables/{% if receivable %}{{ receivable.id }}/update{% else %}create{% endif %}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label required">客戶</label>
+                    <select class="form-select" name="customer_id" required>
+                        <option value="">請選擇</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}" {% if receivable and receivable.customer_id == customer.id %}selected{% endif %}>
+                            {{ customer.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">關聯銷貨單</label>
+                    <select class="form-select" name="sales_id">
+                        <option value="">請選擇</option>
+                        {% for sale in sales %}
+                        <option value="{{ sale.id }}" {% if receivable and receivable.sales_id == sale.id %}selected{% endif %}>
+                            {{ sale.sales_number }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">參考單號</label>
+                    <input type="text" class="form-control" name="reference_number" value="{{ receivable.reference_number if receivable else '' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label required">到期日</label>
+                    <input type="date" class="form-control" name="due_date" value="{{ receivable.due_date.strftime('%Y-%m-%d') if receivable and receivable.due_date else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label required">應收金額</label>
+                    <input type="number" class="form-control" name="amount" value="{{ receivable.amount if receivable else '' }}" min="0" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">已收金額</label>
+                    <input type="number" class="form-control" name="received_amount" value="{{ receivable.received_amount if receivable else 0 }}" min="0">
+                </div>
+                
+                <div class="col-md-12">
+                    <label class="form-label">備註</label>
+                    <textarea class="form-control" name="notes" rows="3">{{ receivable.notes if receivable else '' }}</textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between">
+                <a href="/accounting/receivables" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> 返回列表
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> {% if receivable %}更新{% else %}建立{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('receivableForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/accounting/receivables';
+            }, 1000);
+        } else {
+            showToast(result.detail || '操作失敗', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}

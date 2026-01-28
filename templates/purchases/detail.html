@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}進貨單詳情 - {{ purchase.purchase_number }} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/purchases">進貨單管理</a></li>
+                <li class="breadcrumb-item active">{{ purchase.purchase_number }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-cart-plus"></i> 進貨單詳情</h2>
+            <div>
+                <button type="button" class="btn btn-outline-secondary me-2" onclick="printContent('printArea')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+                <a href="/purchases/{{ purchase.id }}/edit" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> 編輯
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="printArea">
+    <!-- 基本資料 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-info-circle"></i> 基本資料
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th width="30%">進貨單號</th>
+                            <td><strong>{{ purchase.purchase_number }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>進貨日期</th>
+                            <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') if purchase.purchase_date else '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>廠商</th>
+                            <td>{{ purchase.supplier.name if purchase.supplier else '-' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th width="30%">單價</th>
+                            <td>{{ "{:,.2f}".format(purchase.unit_price or 0) }} 元/kg</td>
+                        </tr>
+                        <tr>
+                            <th>總重量</th>
+                            <td>{{ "{:,.1f}".format(purchase.total_weight or 0) }} kg</td>
+                        </tr>
+                        <tr>
+                            <th>總金額</th>
+                            <td class="text-primary"><strong>{{ "{:,.0f}".format(purchase.total_amount or 0) }} 元</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 牛隻明細 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-list-ul"></i> 牛隻明細 (共 {{ purchase.details|length }} 頭)
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th width="50">#</th>
+                            <th>牛隻編號</th>
+                            <th>類別</th>
+                            <th class="text-end">重量 (kg)</th>
+                            <th class="text-end">單價</th>
+                            <th class="text-end">金額</th>
+                            <th>狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in purchase.details %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <a href="/cattle/{{ detail.cattle.id }}">{{ detail.cattle.serial_number if detail.cattle else '-' }}</a>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if detail.cattle and detail.cattle.category == 'S' else 'warning' }}">
+                                    {{ '小牛' if detail.cattle and detail.cattle.category == 'S' else '整隻牛' }}
+                                </span>
+                            </td>
+                            <td class="text-end">{{ "{:,.1f}".format(detail.weight or 0) }}</td>
+                            <td class="text-end">{{ "{:,.2f}".format(detail.unit_price or 0) }}</td>
+                            <td class="text-end">{{ "{:,.0f}".format(detail.amount or 0) }}</td>
+                            <td>
+                                {% if detail.cattle %}
+                                <span class="badge bg-{{ 'success' if detail.cattle.status == '在場' else ('danger' if detail.cattle.status == '死亡' else 'secondary') }}">
+                                    {{ detail.cattle.status }}
+                                </span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">無明細資料</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td colspan="3" class="text-end"><strong>合計</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.1f}".format(purchase.total_weight or 0) }}</strong></td>
+                            <td></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(purchase.total_amount or 0) }}</strong></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    {% if purchase.notes %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-chat-text"></i> 備註
+        </div>
+        <div class="card-body">
+            <p class="mb-0">{{ purchase.notes }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="d-flex justify-content-between">
+    <a href="/purchases" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </a>
+</div>
+{% endblock %}

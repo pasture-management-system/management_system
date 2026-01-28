@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}儀表板 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="bi bi-speedometer2"></i> 儀表板</h2>
+        <p class="text-muted">系統概覽與快速操作</p>
+    </div>
+</div>
+
+<!-- 統計卡片 -->
+<div class="row mb-4">
+    <div class="col-md-4 col-lg-2 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">在養牛隻</h6>
+                        <h3 class="mb-0" id="cattleCount">-</h3>
+                    </div>
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-heart-pulse"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">客戶數</h6>
+                        <h3 class="mb-0" id="customerCount">-</h3>
+                    </div>
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-people"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">廠商數</h6>
+                        <h3 class="mb-0" id="supplierCount">-</h3>
+                    </div>
+                    <div class="stat-icon bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-truck"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">本月進貨</h6>
+                        <h4 class="mb-0" id="monthPurchase">-</h4>
+                    </div>
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-box-arrow-in-down"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">本月銷貨</h6>
+                        <h4 class="mb-0" id="monthSales">-</h4>
+                    </div>
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-box-arrow-up"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">本月毛利</h6>
+                        <h4 class="mb-0" id="monthProfit">-</h4>
+                    </div>
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> 快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3 col-lg-2">
+                        <a href="/purchases/create" class="btn btn-outline-primary w-100 py-3">
+                            <i class="bi bi-plus-circle d-block mb-2" style="font-size: 1.5rem;"></i>
+                            新增進貨單
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-lg-2">
+                        <a href="/sales/create" class="btn btn-outline-success w-100 py-3">
+                            <i class="bi bi-cart-plus d-block mb-2" style="font-size: 1.5rem;"></i>
+                            新增銷貨單
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-lg-2">
+                        <a href="/customers/create" class="btn btn-outline-info w-100 py-3">
+                            <i class="bi bi-person-plus d-block mb-2" style="font-size: 1.5rem;"></i>
+                            新增客戶
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-lg-2">
+                        <a href="/suppliers/create" class="btn btn-outline-warning w-100 py-3">
+                            <i class="bi bi-building-add d-block mb-2" style="font-size: 1.5rem;"></i>
+                            新增廠商
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-lg-2">
+                        <a href="/cattle" class="btn btn-outline-secondary w-100 py-3">
+                            <i class="bi bi-search d-block mb-2" style="font-size: 1.5rem;"></i>
+                            牛隻查詢
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-lg-2">
+                        <a href="/system/backup" class="btn btn-outline-danger w-100 py-3">
+                            <i class="bi bi-cloud-arrow-up d-block mb-2" style="font-size: 1.5rem;"></i>
+                            資料備份
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 功能模組 -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-box-seam"></i> 進銷存系統</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-box-arrow-in-down text-warning"></i> 進貨作業</span>
+                        <a href="/purchases" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-box-arrow-up text-success"></i> 銷貨作業</span>
+                        <a href="/sales" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-heart-pulse text-danger"></i> 牛隻管理</span>
+                        <a href="/cattle" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-clipboard-data text-info"></i> 進貨雜項</span>
+                        <a href="/purchases/misc/list" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-cash-coin"></i> 財務系統</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-credit-card-2-back text-danger"></i> 應付帳款</span>
+                        <a href="/accounting/payables" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-cash text-success"></i> 應收帳款</span>
+                        <a href="/accounting/receivables" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-receipt text-primary"></i> 轉帳傳票</span>
+                        <a href="/accounting/vouchers" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-wallet2 text-warning"></i> 薪資系統</span>
+                        <a href="/payroll" class="btn btn-sm btn-outline-primary">前往</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 載入儀表板統計
+    $.get('/api/dashboard/stats', function(response) {
+        if (response.success) {
+            const data = response.data;
+            $('#cattleCount').text(data.cattle_in_farm);
+            $('#customerCount').text(data.customer_count);
+            $('#supplierCount').text(data.supplier_count);
+            $('#monthPurchase').text(formatCurrency(data.month_purchase));
+            $('#monthSales').text(formatCurrency(data.month_sales));
+            $('#monthProfit').text(formatCurrency(data.month_profit));
+        }
+    });
+});
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('zh-TW', {
+        style: 'currency',
+        currency: 'TWD',
+        minimumFractionDigits: 0
+    }).format(amount);
+}
+</script>
+{% endblock %}

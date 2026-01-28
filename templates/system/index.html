@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}系統管理 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="bi bi-gear"></i> 系統管理</h2>
+        <p class="text-muted mb-0">系統重整、資料備份與維護</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 資料備份 -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-cloud-download"></i> 資料備份
+            </div>
+            <div class="card-body">
+                <p>定期備份資料庫，確保資料安全。</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" onclick="backupDatabase()">
+                        <i class="bi bi-download"></i> 立即備份
+                    </button>
+                    <a href="/system/backup/list" class="btn btn-outline-primary">
+                        <i class="bi bi-folder"></i> 備份記錄
+                    </a>
+                </div>
+                <hr>
+                <div class="small text-muted">
+                    <p class="mb-1"><i class="bi bi-info-circle"></i> 備份檔案儲存於：</p>
+                    <code>{{ backup_path }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 資料還原 -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-cloud-upload"></i> 資料還原
+            </div>
+            <div class="card-body">
+                <p>從備份檔案還原資料庫。</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    還原會覆蓋現有資料，請謹慎操作！
+                </div>
+                <form id="restoreForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">選擇備份檔案</label>
+                        <input type="file" class="form-control" name="backup_file" accept=".db,.sqlite,.sqlite3" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-upload"></i> 還原資料
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 系統重整 -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-arrow-repeat"></i> 系統重整
+            </div>
+            <div class="card-body">
+                <p>優化資料庫效能，清理暫存資料。</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-info text-white" onclick="optimizeDatabase()">
+                        <i class="bi bi-speedometer"></i> 優化資料庫
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="analyzeDatabase()">
+                        <i class="bi bi-graph-up"></i> 分析資料庫
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="checkIntegrity()">
+                        <i class="bi bi-shield-check"></i> 完整性檢查
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 系統資訊 -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-info-circle"></i> 系統資訊
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th>系統名稱</th>
+                        <td>清發畜牧場管理系統</td>
+                    </tr>
+                    <tr>
+                        <th>版本</th>
+                        <td>1.0.0</td>
+                    </tr>
+                    <tr>
+                        <th>資料庫大小</th>
+                        <td id="dbSize">計算中...</td>
+                    </tr>
+                    <tr>
+                        <th>最後備份</th>
+                        <td id="lastBackup">{{ last_backup or '尚未備份' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 資料統計 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header">
+        <i class="bi bi-clipboard-data"></i> 資料統計
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-2">
+                <h4 class="text-primary">{{ stats.customers or 0 }}</h4>
+                <p class="text-muted mb-0">客戶數</p>
+            </div>
+            <div class="col-md-2">
+                <h4 class="text-info">{{ stats.suppliers or 0 }}</h4>
+                <p class="text-muted mb-0">廠商數</p>
+            </div>
+            <div class="col-md-2">
+                <h4 class="text-success">{{ stats.employees or 0 }}</h4>
+                <p class="text-muted mb-0">員工數</p>
+            </div>
+            <div class="col-md-2">
+                <h4 class="text-warning">{{ stats.cattle or 0 }}</h4>
+                <p class="text-muted mb-0">牛隻數</p>
+            </div>
+            <div class="col-md-2">
+                <h4 class="text-danger">{{ stats.purchases or 0 }}</h4>
+                <p class="text-muted mb-0">進貨單數</p>
+            </div>
+            <div class="col-md-2">
+                <h4 class="text-secondary">{{ stats.sales or 0 }}</h4>
+                <p class="text-muted mb-0">銷貨單數</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 危險區域 -->
+<div class="card border-danger mb-4">
+    <div class="card-header bg-danger text-white">
+        <i class="bi bi-exclamation-octagon"></i> 危險區域
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <h5>清除所有資料</h5>
+                <p class="text-muted mb-0">此操作將清除資料庫中所有資料，無法復原！</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button type="button" class="btn btn-outline-danger" onclick="clearAllData()">
+                    <i class="bi bi-trash"></i> 清除資料
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 載入資料庫大小
+$(document).ready(function() {
+    $.get('/system/api/db-size', function(response) {
+        if (response.success) {
+            $('#dbSize').text(response.size);
+        }
+    });
+});
+
+// 備份資料庫
+function backupDatabase() {
+    showToast('正在備份中...', 'info');
+    
+    fetch('/system/api/backup', { method: 'POST' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast('備份成功！', 'success');
+                $('#lastBackup').text(result.backup_time);
+            } else {
+                showToast(result.detail || '備份失敗', 'error');
+            }
+        });
+}
+
+// 還原資料庫
+$('#restoreForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    if (!confirm('確定要還原資料嗎？此操作將覆蓋現有資料！')) {
+        return;
+    }
+    
+    const formData = new FormData(this);
+    showToast('正在還原中...', 'info');
+    
+    $.ajax({
+        url: '/system/api/restore',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(result) {
+            if (result.success) {
+                showToast('還原成功！系統將重新載入...', 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showToast(result.detail || '還原失敗', 'error');
+            }
+        }
+    });
+});
+
+// 優化資料庫
+function optimizeDatabase() {
+    showToast('正在優化中...', 'info');
+    
+    fetch('/system/api/optimize', { method: 'POST' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast('優化完成！', 'success');
+            } else {
+                showToast(result.detail || '優化失敗', 'error');
+            }
+        });
+}
+
+// 分析資料庫
+function analyzeDatabase() {
+    fetch('/system/api/analyze', { method: 'POST' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast('分析完成！', 'success');
+            } else {
+                showToast(result.detail || '分析失敗', 'error');
+            }
+        });
+}
+
+// 完整性檢查
+function checkIntegrity() {
+    fetch('/system/api/integrity', { method: 'POST' })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast(`完整性檢查: ${result.result}`, result.result === 'ok' ? 'success' : 'warning');
+            } else {
+                showToast(result.detail || '檢查失敗', 'error');
+            }
+        });
+}
+
+// 清除所有資料
+function clearAllData() {
+    const confirmText = prompt('此操作無法復原！請輸入 "清除所有資料" 確認：');
+    
+    if (confirmText === '清除所有資料') {
+        fetch('/system/api/clear-all', { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('資料已清除！', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '清除失敗', 'error');
+                }
+            });
+    } else if (confirmText !== null) {
+        showToast('輸入不正確，操作已取消', 'warning');
+    }
+}
+</script>
+{% endblock %}

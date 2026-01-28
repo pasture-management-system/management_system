@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}牛隻詳情 - {{ cattle.serial_number }} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/cattle">牛隻資料</a></li>
+                <li class="breadcrumb-item active">{{ cattle.serial_number }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-eye"></i> 牛隻詳情</h2>
+            <div>
+                <a href="/cattle/{{ cattle.id }}/edit" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> 編輯
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-info-circle"></i> 基本資料
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th width="30%">牛隻編號</th>
+                        <td><strong>{{ cattle.serial_number }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>類別</th>
+                        <td>
+                            <span class="badge bg-{{ 'info' if cattle.category == 'S' else 'warning' }}">
+                                {{ '小牛' if cattle.category == 'S' else '整隻牛' }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>狀態</th>
+                        <td>
+                            <span class="badge bg-{{ 'success' if cattle.status == '在場' else ('danger' if cattle.status == '死亡' else 'secondary') }}">
+                                {{ cattle.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>來源廠商</th>
+                        <td>{{ cattle.supplier.name if cattle.supplier else '-' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-graph-up"></i> 重量資料
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th width="30%">進場日期</th>
+                        <td>{{ cattle.entry_date.strftime('%Y-%m-%d') if cattle.entry_date else '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>進場重量</th>
+                        <td>{{ cattle.entry_weight or '-' }} kg</td>
+                    </tr>
+                    <tr>
+                        <th>目前重量</th>
+                        <td>{{ cattle.current_weight or '-' }} kg</td>
+                    </tr>
+                    {% if cattle.exit_date %}
+                    <tr>
+                        <th>出場日期</th>
+                        <td>{{ cattle.exit_date.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    <tr>
+                        <th>出場重量</th>
+                        <td>{{ cattle.exit_weight or '-' }} kg</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if cattle.purchase %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+        <i class="bi bi-cart-plus"></i> 進貨資訊
+    </div>
+    <div class="card-body">
+        <table class="table table-borderless mb-0">
+            <tr>
+                <th width="15%">進貨單號</th>
+                <td>
+                    <a href="/purchases/{{ cattle.purchase.id }}">{{ cattle.purchase.purchase_number }}</a>
+                </td>
+                <th width="15%">進貨日期</th>
+                <td>{{ cattle.purchase.purchase_date.strftime('%Y-%m-%d') if cattle.purchase.purchase_date else '-' }}</td>
+            </tr>
+            <tr>
+                <th>廠商</th>
+                <td>{{ cattle.purchase.supplier.name if cattle.purchase.supplier else '-' }}</td>
+                <th>備註</th>
+                <td>{{ cattle.purchase.notes or '-' }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if cattle.status == '死亡' and death_record %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-danger text-white">
+        <i class="bi bi-x-circle"></i> 死亡記錄
+    </div>
+    <div class="card-body">
+        <table class="table table-borderless mb-0">
+            <tr>
+                <th width="15%">死亡日期</th>
+                <td>{{ death_record.death_date.strftime('%Y-%m-%d') if death_record.death_date else '-' }}</td>
+            </tr>
+            <tr>
+                <th>死亡原因</th>
+                <td>{{ death_record.death_reason or '-' }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if cattle.notes %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header">
+        <i class="bi bi-chat-text"></i> 備註
+    </div>
+    <div class="card-body">
+        <p class="mb-0">{{ cattle.notes }}</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between">
+    <a href="/cattle" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{% if cattle %}編輯牛隻{% else %}新增牛隻{% endif %} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/cattle">牛隻資料</a></li>
+                <li class="breadcrumb-item active">{% if cattle %}編輯牛隻{% else %}新增牛隻{% endif %}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-{% if cattle %}pencil{% else %}plus-circle{% endif %}"></i> {% if cattle %}編輯牛隻{% else %}新增牛隻{% endif %}</h2>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form id="cattleForm" action="/cattle/api/{% if cattle %}{{ cattle.id }}/update{% else %}create{% endif %}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label required">牛隻編號</label>
+                    <input type="text" class="form-control" name="serial_number" value="{{ cattle.serial_number if cattle else serial_number }}" readonly>
+                    <small class="text-muted">格式：類別(S/K) + 民國日期(YYYMMDD) + 序號(XX)</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label required">類別</label>
+                    <select class="form-select" name="category" id="categorySelect" {% if cattle %}disabled{% endif %}>
+                        <option value="S" {% if cattle and cattle.category == 'S' %}selected{% endif %}>小牛 (S)</option>
+                        <option value="K" {% if cattle and cattle.category == 'K' %}selected{% endif %}>整隻牛 (K)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">狀態</label>
+                    <select class="form-select" name="status" {% if not cattle %}disabled{% endif %}>
+                        <option value="在場" {% if not cattle or cattle.status == '在場' %}selected{% endif %}>在場</option>
+                        <option value="已售出" {% if cattle and cattle.status == '已售出' %}selected{% endif %}>已售出</option>
+                        <option value="死亡" {% if cattle and cattle.status == '死亡' %}selected{% endif %}>死亡</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">進場日期</label>
+                    <input type="date" class="form-control" name="entry_date" value="{{ cattle.entry_date.strftime('%Y-%m-%d') if cattle and cattle.entry_date else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">進場重量 (kg)</label>
+                    <input type="number" class="form-control" name="entry_weight" value="{{ cattle.entry_weight if cattle else '' }}" step="0.1" min="0">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">目前重量 (kg)</label>
+                    <input type="number" class="form-control" name="current_weight" value="{{ cattle.current_weight if cattle else '' }}" step="0.1" min="0">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">來源廠商</label>
+                    <select class="form-select" name="supplier_id">
+                        <option value="">請選擇</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if cattle and cattle.supplier_id == supplier.id %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">關聯進貨單</label>
+                    <input type="text" class="form-control" name="purchase_id" value="{{ cattle.purchase_id if cattle else '' }}" readonly>
+                </div>
+                <div class="col-md-4"></div>
+                
+                {% if cattle and cattle.status == '已售出' %}
+                <div class="col-md-4">
+                    <label class="form-label">出場日期</label>
+                    <input type="date" class="form-control" name="exit_date" value="{{ cattle.exit_date.strftime('%Y-%m-%d') if cattle and cattle.exit_date else '' }}" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">出場重量 (kg)</label>
+                    <input type="number" class="form-control" name="exit_weight" value="{{ cattle.exit_weight if cattle else '' }}" readonly>
+                </div>
+                {% endif %}
+                
+                <div class="col-md-12">
+                    <label class="form-label">備註</label>
+                    <textarea class="form-control" name="notes" rows="3">{{ cattle.notes if cattle else '' }}</textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between">
+                <a href="/cattle" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> 返回列表
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> {% if cattle %}更新{% else %}建立{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('cattleForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/cattle';
+            }, 1000);
+        } else {
+            showToast(result.detail || '操作失敗', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}

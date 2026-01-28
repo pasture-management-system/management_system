@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}傳票管理 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-journal-text"></i> 傳票管理</h2>
+            <p class="text-muted mb-0">管理轉帳傳票</p>
+        </div>
+        <div>
+            <a href="/accounting/vouchers/create" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增傳票
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋列 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" id="searchKeyword" class="form-control" placeholder="搜尋傳票號碼、說明...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select id="filterYear" class="form-select">
+                    <option value="">全部年度</option>
+                    {% for year in years %}
+                    <option value="{{ year }}">民國 {{ year }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select id="filterMonth" class="form-select">
+                    <option value="">全部月份</option>
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}">{{ m }} 月</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 text-end">
+                <button type="button" class="btn btn-outline-primary me-2" onclick="searchVouchers()">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="printContent('voucherTable')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 傳票列表 -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="voucherTable">
+            <table class="table table-hover mb-0" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>傳票號碼</th>
+                        <th>日期</th>
+                        <th>借方科目</th>
+                        <th>貸方科目</th>
+                        <th class="text-end">金額</th>
+                        <th>說明</th>
+                        <th width="120">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for voucher in vouchers %}
+                    <tr>
+                        <td><strong>{{ voucher.voucher_number }}</strong></td>
+                        <td>{{ voucher.voucher_date.strftime('%Y-%m-%d') if voucher.voucher_date else '-' }}</td>
+                        <td>{{ voucher.debit_account.name if voucher.debit_account else '-' }}</td>
+                        <td>{{ voucher.credit_account.name if voucher.credit_account else '-' }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(voucher.amount or 0) }}</td>
+                        <td>{{ voucher.description or '-' }}</td>
+                        <td class="action-buttons">
+                            <a href="/accounting/vouchers/{{ voucher.id }}/edit" class="btn btn-sm btn-outline-primary" title="編輯">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteVoucher({{ voucher.id }})" title="刪除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無傳票資料</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function searchVouchers() {
+    const keyword = $('#searchKeyword').val();
+    const year = $('#filterYear').val();
+    const month = $('#filterMonth').val();
+    
+    let url = '/accounting/vouchers?';
+    if (keyword) url += `keyword=${keyword}&`;
+    if (year) url += `year=${year}&`;
+    if (month) url += `month=${month}&`;
+    
+    window.location.href = url;
+}
+
+function deleteVoucher(id) {
+    if (confirm('確定要刪除此傳票嗎？')) {
+        fetch(`/accounting/api/vouchers/${id}/delete`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('傳票已刪除', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '刪除失敗', 'error');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

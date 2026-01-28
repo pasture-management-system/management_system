@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}{% if misc %}編輯雜項進貨{% else %}新增雜項進貨{% endif %} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/purchases/misc">雜項進貨</a></li>
+                <li class="breadcrumb-item active">{% if misc %}編輯{% else %}新增{% endif %}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-{% if misc %}pencil{% else %}plus-circle{% endif %}"></i> {% if misc %}編輯雜項進貨{% else %}新增雜項進貨{% endif %}</h2>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form id="miscForm" action="/purchases/api/misc/{% if misc %}{{ misc.id }}/update{% else %}create{% endif %}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label required">日期</label>
+                    <input type="date" class="form-control" name="purchase_date" value="{{ misc.purchase_date.strftime('%Y-%m-%d') if misc and misc.purchase_date else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label required">類別</label>
+                    <select class="form-select" name="category" required>
+                        <option value="">請選擇</option>
+                        <option value="設備維修" {% if misc and misc.category == '設備維修' %}selected{% endif %}>設備維修</option>
+                        <option value="辦公文具" {% if misc and misc.category == '辦公文具' %}selected{% endif %}>辦公文具</option>
+                        <option value="飼料" {% if misc and misc.category == '飼料' %}selected{% endif %}>飼料</option>
+                        <option value="耗損" {% if misc and misc.category == '耗損' %}selected{% endif %}>耗損</option>
+                        <option value="其他" {% if misc and misc.category == '其他' %}selected{% endif %}>其他</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">廠商</label>
+                    <select class="form-select" name="supplier_id">
+                        <option value="">請選擇</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if misc and misc.supplier_id == supplier.id %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label required">金額</label>
+                    <input type="number" class="form-control" name="amount" value="{{ misc.amount if misc else '' }}" min="0" required>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">說明</label>
+                    <input type="text" class="form-control" name="description" value="{{ misc.description if misc else '' }}">
+                </div>
+                
+                <div class="col-md-12">
+                    <label class="form-label">備註</label>
+                    <textarea class="form-control" name="notes" rows="3">{{ misc.notes if misc else '' }}</textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between">
+                <a href="/purchases/misc" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> 返回列表
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> {% if misc %}更新{% else %}建立{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('miscForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/purchases/misc';
+            }, 1000);
+        } else {
+            showToast(result.detail || '操作失敗', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}

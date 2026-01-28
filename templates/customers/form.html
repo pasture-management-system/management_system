@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}{% if customer %}編輯客戶{% else %}新增客戶{% endif %} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/customers">客戶資料</a></li>
+                <li class="breadcrumb-item active">{% if customer %}編輯客戶{% else %}新增客戶{% endif %}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-{% if customer %}pencil{% else %}plus-circle{% endif %}"></i> {% if customer %}編輯客戶{% else %}新增客戶{% endif %}</h2>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form id="customerForm" action="/customers/api/{% if customer %}{{ customer.id }}/update{% else %}create{% endif %}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label required">客戶編號</label>
+                    <input type="text" class="form-control" name="customer_code" value="{{ customer.customer_code if customer else customer_code }}" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label required">客戶名稱</label>
+                    <input type="text" class="form-control" name="name" value="{{ customer.name if customer else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">負責人</label>
+                    <input type="text" class="form-control" name="contact_person" value="{{ customer.contact_person if customer else '' }}">
+                </div>
+                
+                <div class="col-md-12">
+                    <label class="form-label">地址</label>
+                    <input type="text" class="form-control" name="address" value="{{ customer.address if customer else '' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">電話</label>
+                    <input type="text" class="form-control" name="phone" value="{{ customer.phone if customer else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">傳真</label>
+                    <input type="text" class="form-control" name="fax" value="{{ customer.fax if customer else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">手機</label>
+                    <input type="text" class="form-control" name="mobile" value="{{ customer.mobile if customer else '' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">統一編號</label>
+                    <input type="text" class="form-control" name="tax_id" value="{{ customer.tax_id if customer else '' }}" maxlength="8">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">電子郵件</label>
+                    <input type="email" class="form-control" name="email" value="{{ customer.email if customer else '' }}">
+                </div>
+                <div class="col-md-4"></div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">銀行名稱</label>
+                    <input type="text" class="form-control" name="bank_name" value="{{ customer.bank_name if customer else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">銀行帳號</label>
+                    <input type="text" class="form-control" name="bank_account" value="{{ customer.bank_account if customer else '' }}">
+                </div>
+                <div class="col-md-4"></div>
+                
+                <div class="col-md-12">
+                    <label class="form-label">備註</label>
+                    <textarea class="form-control" name="notes" rows="3">{{ customer.notes if customer else '' }}</textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between">
+                <a href="/customers" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> 返回列表
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> {% if customer %}更新{% else %}建立{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('customerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/customers';
+            }, 1000);
+        } else {
+            showToast(result.detail || '操作失敗', 'error');
+        }
+    })
+    .catch(error => {
+        showToast('系統錯誤', 'error');
+    });
+});
+</script>
+{% endblock %}

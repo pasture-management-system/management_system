@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}雜項進貨 - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2><i class="bi bi-receipt"></i> 雜項進貨</h2>
+            <p class="text-muted mb-0">管理設備維修、辦公文具、飼料、耗損等雜項進貨</p>
+        </div>
+        <div>
+            <a href="/purchases" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-cart-plus"></i> 牛隻進貨
+            </a>
+            <a href="/purchases/misc/create" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增雜項
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋列 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <select id="filterCategory" class="form-select">
+                    <option value="">全部類別</option>
+                    <option value="設備維修">設備維修</option>
+                    <option value="辦公文具">辦公文具</option>
+                    <option value="飼料">飼料</option>
+                    <option value="耗損">耗損</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="filterYear" class="form-select">
+                    <option value="">全部年度</option>
+                    {% for year in years %}
+                    <option value="{{ year }}">民國 {{ year }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="filterMonth" class="form-select">
+                    <option value="">全部月份</option>
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}">{{ m }} 月</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="button" class="btn btn-outline-primary me-2" onclick="searchMisc()">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="printContent('miscTable')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 統計卡片 -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted">設備維修</h6>
+                <h4 class="text-primary">{{ "{:,.0f}".format(summary.equipment or 0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted">辦公文具</h6>
+                <h4 class="text-info">{{ "{:,.0f}".format(summary.office or 0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted">飼料</h6>
+                <h4 class="text-success">{{ "{:,.0f}".format(summary.feed or 0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted">耗損</h6>
+                <h4 class="text-warning">{{ "{:,.0f}".format(summary.loss or 0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="text-muted">其他</h6>
+                <h4 class="text-secondary">{{ "{:,.0f}".format(summary.other or 0) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm bg-primary text-white">
+            <div class="card-body text-center">
+                <h6 class="text-white-50">總計</h6>
+                <h4>{{ "{:,.0f}".format(summary.total or 0) }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 雜項列表 -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="miscTable">
+            <table class="table table-hover mb-0" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>類別</th>
+                        <th>廠商</th>
+                        <th>說明</th>
+                        <th class="text-end">金額</th>
+                        <th width="120">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in misc_list %}
+                    <tr>
+                        <td>{{ item.purchase_date.strftime('%Y-%m-%d') if item.purchase_date else '-' }}</td>
+                        <td>
+                            <span class="badge bg-{{ 
+                                'primary' if item.category == '設備維修' else 
+                                ('info' if item.category == '辦公文具' else 
+                                ('success' if item.category == '飼料' else 
+                                ('warning' if item.category == '耗損' else 'secondary')))
+                            }}">
+                                {{ item.category }}
+                            </span>
+                        </td>
+                        <td>{{ item.supplier.name if item.supplier else '-' }}</td>
+                        <td>{{ item.description or '-' }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(item.amount or 0) }}</td>
+                        <td class="action-buttons">
+                            <a href="/purchases/misc/{{ item.id }}/edit" class="btn btn-sm btn-outline-primary" title="編輯">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMisc({{ item.id }})" title="刪除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">尚無雜項進貨資料</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function searchMisc() {
+    const category = $('#filterCategory').val();
+    const year = $('#filterYear').val();
+    const month = $('#filterMonth').val();
+    
+    let url = '/purchases/misc?';
+    if (category) url += `category=${category}&`;
+    if (year) url += `year=${year}&`;
+    if (month) url += `month=${month}&`;
+    
+    window.location.href = url;
+}
+
+function deleteMisc(id) {
+    if (confirm('確定要刪除此雜項進貨嗎？')) {
+        fetch(`/purchases/api/misc/${id}/delete`, { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('雜項進貨已刪除', 'success');
+                    location.reload();
+                } else {
+                    showToast(result.detail || '刪除失敗', 'error');
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}銷貨單詳情 - {{ sale.sales_number }} - 清發畜牧場管理系統{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/sales">銷貨單管理</a></li>
+                <li class="breadcrumb-item active">{{ sale.sales_number }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-cart-dash"></i> 銷貨單詳情</h2>
+            <div>
+                <button type="button" class="btn btn-outline-secondary me-2" onclick="printContent('printArea')">
+                    <i class="bi bi-printer"></i> 列印
+                </button>
+                <a href="/sales/{{ sale.id }}/edit" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> 編輯
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="printArea">
+    <!-- 基本資料 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <i class="bi bi-info-circle"></i> 基本資料
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th width="30%">銷貨單號</th>
+                            <td><strong>{{ sale.sales_number }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>銷貨日期</th>
+                            <td>{{ sale.sales_date.strftime('%Y-%m-%d') if sale.sales_date else '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>客戶</th>
+                            <td>{{ sale.customer.name if sale.customer else '-' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th width="30%">單價</th>
+                            <td>{{ "{:,.2f}".format(sale.unit_price or 0) }} 元/kg</td>
+                        </tr>
+                        <tr>
+                            <th>總重量</th>
+                            <td>{{ "{:,.1f}".format(sale.total_weight or 0) }} kg</td>
+                        </tr>
+                        <tr>
+                            <th>總金額</th>
+                            <td class="text-success"><strong>{{ "{:,.0f}".format(sale.total_amount or 0) }} 元</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 牛隻明細 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-list-ul"></i> 牛隻明細 (共 {{ sale.details|length }} 頭)
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th width="50">#</th>
+                            <th>牛隻編號</th>
+                            <th>類別</th>
+                            <th class="text-end">進場重量 (kg)</th>
+                            <th class="text-end">出場重量 (kg)</th>
+                            <th class="text-end">增重</th>
+                            <th class="text-end">單價</th>
+                            <th class="text-end">金額</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in sale.details %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <a href="/cattle/{{ detail.cattle.id }}">{{ detail.cattle.serial_number if detail.cattle else '-' }}</a>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if detail.cattle and detail.cattle.category == 'S' else 'warning' }}">
+                                    {{ '小牛' if detail.cattle and detail.cattle.category == 'S' else '整隻牛' }}
+                                </span>
+                            </td>
+                            <td class="text-end">{{ "{:,.1f}".format(detail.cattle.entry_weight or 0) if detail.cattle else '-' }}</td>
+                            <td class="text-end">{{ "{:,.1f}".format(detail.weight or 0) }}</td>
+                            <td class="text-end">
+                                {% if detail.cattle and detail.cattle.entry_weight and detail.weight %}
+                                    {% set gain = detail.weight - detail.cattle.entry_weight %}
+                                    <span class="text-{{ 'success' if gain > 0 else 'danger' }}">
+                                        {{ "{:+,.1f}".format(gain) }}
+                                    </span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ "{:,.2f}".format(detail.unit_price or 0) }}</td>
+                            <td class="text-end">{{ "{:,.0f}".format(detail.amount or 0) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">無明細資料</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td colspan="4" class="text-end"><strong>合計</strong></td>
+                            <td class="text-end"><strong>{{ "{:,.1f}".format(sale.total_weight or 0) }}</strong></td>
+                            <td></td>
+                            <td></td>
+                            <td class="text-end"><strong>{{ "{:,.0f}".format(sale.total_amount or 0) }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    {% if sale.notes %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-chat-text"></i> 備註
+        </div>
+        <div class="card-body">
+            <p class="mb-0">{{ sale.notes }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="d-flex justify-content-between">
+    <a href="/sales" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </a>
+</div>
+{% endblock %}
